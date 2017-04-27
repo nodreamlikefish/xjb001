@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>部门管理</title>
+<script type="text/javascript">
+	var xmlHttpRequest ;
+	function create(){
+		if(window.XMLHttpRequest){    //非IE浏览器
+			xmlHttpRequest = new XMLHttpRequest() ;
+		}else{   //IE浏览器
+			xmlHttpRequest = new ActiveXObject("Microsoft.XMLHttp") ;
+		}
+	}
+	window.onload = function(){
+		loadDept() ;
+		//增加操作
+		document.getElementById("addDept").addEventListener("click",function(){
+			dnameValue = document.getElementById("dname").value ;
+			if(dnameValue != ""){
+				create() ;
+				xmlHttpRequest.open("post","DeptServlet/add?dname=" + dnameValue) ;
+				xmlHttpRequest.send(null) ;
+				xmlHttpRequest.onreadystatechange = function(){
+					if(xmlHttpRequest.readyState == 4 && xmlHttpRequest.status == 200){
+						if(xmlHttpRequest.responseText.trim() == "0"){
+							alert("部门添加失败") ;
+						} else{
+							addRow(xmlHttpRequest.responseText.trim(),dnameValue) ;
+							document.getElementById("dname").value = "" ;
+						}
+					}
+				}
+			}
+		},false) ;
+		//修改操作
+		document.getElementById("editDept").addEventListener("click",function(){
+			deptnoNewValue = document.getElementById("editdeptno").value ;
+			dnameNewValue = document.getElementById("editdname").value ;
+			create() ;
+			xmlHttpRequest.open("post","DeptServlet/edit?deptno=" + deptnoNewValue + 
+					"&dname=" + dnameNewValue) ;
+			xmlHttpRequest.send(null) ;
+			xmlHttpRequest.onreadystatechange = function(){
+				if(xmlHttpRequest.readyState == 4 && xmlHttpRequest.status == 200){
+					console.log(xmlHttpRequest.responseText.trim()) ;
+					document.getElementById("deptEditDiv").style.display = "none" ;
+					if(xmlHttpRequest.responseText.trim() == "true"){
+						document.getElementById("dname-" + deptnoNewValue ).innerHTML = dnameNewValue ;
+					}else{
+						alert("修改出错！") ;
+					}
+				}
+			}
+		},false ) ;
+	}
+	function loadDept(){
+		create() ;  //创建XMLHttpRequest对象
+		//定义处理路径
+		xmlHttpRequest.open("post","DeptServlet/list") ;
+		//请求发送
+		xmlHttpRequest.send(null) ;
+		xmlHttpRequest.onreadystatechange = function(){
+			if(xmlHttpRequest.readyState == 4 && xmlHttpRequest.status == 200){
+				deptObj = eval("(" + xmlHttpRequest.responseText + ")") ;
+				for(x = 0;x <deptObj.alldepts.length ;x ++){
+					addRow(deptObj.alldepts[x].deptno,deptObj.alldepts[x].dname) ;
+				}
+			}
+		}
+	}
+	function removeRow(deptno){
+		if(window.confirm("确定要删除吗？")){
+			create() ;
+			xmlHttpRequest.open("post","DeptServlet/delete?deptno=" +deptno) ;
+			xmlHttpRequest.send(null) ;
+			xmlHttpRequest.onreadystatechange = function(){
+				if(xmlHttpRequest.readyState == 4 && xmlHttpRequest.status == 200){
+					if(xmlHttpRequest.responseText.trim() != "true"){  
+						alert("数据删除失败") ;
+					}else{
+						deleteTrElement = document.getElementById("dept-" + deptno) ;
+						deleteTrElement.parentNode.removeChild(deleteTrElement) ;
+					}
+				}
+			}
+		}
+	}
+	function addRow(deptno,dname){
+		deptTableElement = document.getElementById("deptTable") ;
+		//创建表格与表格列对象
+		deptTrElement = document.createElement("tr") ;
+		deptTrElement.setAttribute("id","dept-" + deptno) ;
+		deptnoTdElement = document.createElement("td") ;
+		deptnoTdElement.setAttribute("id","deptno-" + deptno) ;
+		dnameTdElement = document.createElement("td") ;
+		dnameTdElement.setAttribute("id","dname-" + deptno) ;
+		editButTdElement = document.createElement("td") ;
+		deleteButTdElement = document.createElement("td") ;
+		//填充基础
+		deptnoTdElement.appendChild(document.createTextNode(deptno)) ;
+		dnameTdElement.appendChild(document.createTextNode(dname)) ;
+		//创建按钮
+		editButElement = document.createElement("button") ;
+		editButElement.setAttribute("id","deptEdit-" + deptno) ;
+		editButElement.appendChild(document.createTextNode("编辑")) ;
+		
+		//为修改按钮设置事件
+		editButElement.addEventListener("click",function(){
+			editDeptnoVal = document.getElementById("deptno-" + deptno).firstChild.nodeValue ;
+			editDnameVal = document.getElementById("dname-" + deptno).firstChild.nodeValue ;
+			document.getElementById("editdeptno").value = editDeptnoVal ;
+			document.getElementById("editdname").value = editDnameVal ;
+			document.getElementById("deptEditDiv").style.display = "block" ;
+		},false) ;
+		
+		deleteButElement = document.createElement("button") ;
+		deleteButElement.setAttribute("id","deptDelete-" + deptno) ;
+		deleteButElement.appendChild(document.createTextNode("删除")) ;
+		
+		//为删除按钮追加控制事件
+		deleteButElement.addEventListener("click",function(){
+			removeRow(deptno) ;
+		},false) ;
+		
+		//将按钮追加到表格列中
+		editButTdElement.appendChild(editButElement) ;
+		deleteButTdElement.appendChild(deleteButElement) ;
+		//将表格列追加到表格行中
+		deptTrElement.appendChild(deptnoTdElement) ;
+		deptTrElement.appendChild(dnameTdElement) ;
+		deptTrElement.appendChild(editButTdElement) ;
+		deptTrElement.appendChild(deleteButTdElement) ;
+		
+		
+		deptTableElement.appendChild(deptTrElement) ;
+	}
+</script>
+</head>
+<body>
+<div id="deptForm">
+	部门名称：<input type="text" name="dname" id="dname">
+	<input type="button" id="addDept" value="增加部门">
+</div>
+<div id="deptDiv">
+	<table border="1" id="deptTable">
+		<tr>
+			<td>部门编号</td>
+			<td>部门名称</td>
+			<td colspan="2">操作</td>
+		</tr>
+	</table>
+</div>
+<div id="deptEditDiv" style="display:none;">
+	<input type="text" name="editdname" id="editdname" value="">
+	<input type="hidden" name="editdeptno" id="editdeptno" value="">
+	<input type="button" value="修改" id="editDept">
+</div>
+</body>
+</html>
